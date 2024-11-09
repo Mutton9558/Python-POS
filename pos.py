@@ -1,4 +1,5 @@
 from tkinter import *
+from tkinter import filedialog, messagebox
 import docx
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.shared import Pt
@@ -7,16 +8,42 @@ root = Tk()
 root.title('Python Point Of Sale')
 
 itemDict = {}
+amount = 0
+
+def on_entry_click(event):
+   if cashReceived.get() == "e.g. 200":
+      cashReceived.delete(0, END)
+      cashReceived.configure(foreground="black")
+
+def on_focus_out(event):
+   if cashReceived.get() == "":
+      cashReceived.insert(0, "e.g. 200")
+      cashReceived.configure(foreground="gray")
+
+def update_total_label():
+    totalAmount.config(text=f"Total amount: ${amount:.2f}")
 
 def insertOrder(name:str, price:float):
+    global amount
     if name in itemDict:
         itemDict[name] = round((itemDict[name] + price),2)
     else:
         itemDict[name] = price
-    print(itemDict)
+    amount += price
+    update_total_label()
     return itemDict
 
-def generateReceipt(itemDict, save_path="POSSystem\\Receipt.docx"):
+def generateReceipt(itemDict, save_path="Receipt.docx"):
+    global amount
+    amount = 0
+    update_total_label()
+
+    cash = cashReceived.get().strip()
+    try:
+        cash = float(cash)
+    except:
+        messagebox.showwarning("Invalid cash amount")
+
     document = docx.Document()
 
     # Centered, bold "Store Name" header
@@ -73,23 +100,23 @@ def generateReceipt(itemDict, save_path="POSSystem\\Receipt.docx"):
     c = document.add_paragraph('\n----------------------------------------------------------------------------------------------------------------------\n')
     c.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
-    # table3 = document.add_table(rows=2, cols=2)
-    # cellText2 = table3.cell(0,0)
-    # cellText2.text = "Cash"
-    # cellPrice2 = table3.cell(0, 1)
-    # cellPrice2.text = f"$100.00"
-    # cellText3 = table3.cell(1,0)
-    # cellText3.text = "Change"
-    # cellPrice3 = table3.cell(1, 1)
-    # cellPrice3.text = f"${(100-(15.99+29.49)):.2f}"
+    table3 = document.add_table(rows=2, cols=2)
+    cellText2 = table3.cell(0,0)
+    cellText2.text = "Cash Received"
+    cellPrice2 = table3.cell(0, 1)
+    cellPrice2.text = f"${cash}"
+    cellText3 = table3.cell(1,0)
+    cellText3.text = "Change"
+    cellPrice3 = table3.cell(1, 1)
+    cellPrice3.text = f"${(cash-totalPrice):.2f}"
 
-    # cellText2.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-    # cellPrice2.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-    # cellText3.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-    # cellPrice3.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+    cellText2.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+    cellPrice2.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+    cellText3.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+    cellPrice3.paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
 
-    # e = document.add_paragraph('\n----------------------------------------------------------------------------------------------------------------------\n')
-    # e.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+    e = document.add_paragraph('\n----------------------------------------------------------------------------------------------------------------------\n')
+    e.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         
     receiptTitle = document.add_paragraph('THANK YOU')
     receiptTitle.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
@@ -113,6 +140,16 @@ separator.pack(fill="x", padx=5, pady=(0,15))
 
 meeGoreng = Button(root, text="Noodles", command=lambda: insertOrder("Noodles", 5.90))
 meeGoreng.pack(anchor="w", padx=(20))
+
+totalAmount = Label(root, text=f"Total amount: ${amount:.2f}")
+totalAmount.config(font=("Sans Serif", 10))
+totalAmount.pack(pady=20)
+
+cashReceived = Entry(root, width=25, foreground='gray')
+cashReceived.insert(0, "e.g. 200")
+cashReceived.bind("<FocusIn>", on_entry_click)
+cashReceived.bind("<FocusOut>", on_focus_out)
+cashReceived.pack()
 
 checkOut = Button(root, text="Check Out", command=lambda: generateReceipt(itemDict))
 checkOut.pack(anchor="s", pady=10)
