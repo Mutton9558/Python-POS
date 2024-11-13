@@ -1,14 +1,44 @@
 from tkinter import *
+from tkinter.ttk import Label, Button, Entry
 from tkinter import filedialog, messagebox
 import docx
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.shared import Pt
+import sqlite3
+from PIL import Image, ImageTk
+from io import BytesIO
+
+
+con = sqlite3.connect("foodlist.db")
+cur = con.cursor()
+cur.execute("CREATE TABLE IF NOT EXISTS food(id INTEGER PRIMARY KEY, name TEXT, price REAL)")
 
 root = Tk()
 root.title('Python Point Of Sale')
 
 itemDict = {}
 amount = 0
+
+def openAddItem():
+     
+    # Toplevel object which will 
+    # be treated as a new window
+    newWindow = Toplevel(root)
+
+    titleLabel = Label(newWindow, text="Add a new food item!")
+    titleLabel.grid(row=0, column=0, columnspan=2, pady=10)
+ 
+    # sets the title of the
+    # Toplevel widget
+    newWindow.title("Add a new food item")
+    nameLabel = Label(newWindow, text="Item name: ")
+    nameLabel.grid(row=1, column=0, padx=5, pady=5, sticky="e")
+
+    nameEntry = Entry(newWindow)
+    nameEntry.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+ 
+    # sets the geometry of toplevel
+    newWindow.geometry("400x400")
 
 def on_entry_click(event):
    if cashReceived.get() == "e.g. 200":
@@ -153,5 +183,8 @@ cashReceived.pack()
 
 checkOut = Button(root, text="Check Out", command=lambda: generateReceipt(itemDict))
 checkOut.pack(anchor="s", pady=10)
+
+btn = Button(root, text ="Click to add new food item!", command = openAddItem)
+btn.pack(pady = 10)
 
 root.mainloop()
