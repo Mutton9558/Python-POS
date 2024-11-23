@@ -12,6 +12,7 @@ from io import BytesIO
 con = sqlite3.connect("foodlist.db")
 cur = con.cursor()
 cur.execute("CREATE TABLE IF NOT EXISTS food(id INTEGER PRIMARY KEY, name TEXT, price REAL)")
+item_list = cur.execute("SELECT name, price FROM food ORDER BY name ASC").fetchall()
 
 root = Tk()
 root.title('Python Point Of Sale')
@@ -59,13 +60,14 @@ def insertSQL(foodName, foodPrice):
         return
 
     isAddedAlready = cur.execute("SELECT * FROM food WHERE name=?", (foodName,))
-    if isAddedAlready:
+    if isAddedAlready.fetchone():
         messagebox.showwarning("Unable to add item.", "Item is already added!")
     else:
         cur.execute("SELECT COUNT(id) FROM food")
         count = cur.fetchone()[0]
         cur.execute(f"INSERT INTO food(id, name, price) VALUES (?, ?, ?)", (count + 1, foodName, foodPrice))
         con.commit()
+        display_items()
 
         # For debug purposes
         food = cur.execute("SELECT * FROM food ORDER BY id")
@@ -188,6 +190,22 @@ def generateReceipt(itemDict, save_path="Receipt.docx"):
     except:
         messagebox.showwarning("Check Out fail", "Invalid cash format! (Numeric only!)")
 
+def display_items():
+    """Refresh the displayed items in the root window."""
+    # Clear existing items
+    for widget in items_frame.winfo_children():
+        widget.destroy()
+
+    # Fetch updated items from the database
+    cur.execute("SELECT name, price FROM food ORDER BY name ASC")
+    item_list = cur.fetchall()
+
+    # Display each item as a button
+    for idx, (name, price) in enumerate(item_list):
+        btn = Button(items_frame, text=f"{name}: ${price:.2f}", 
+                     command=lambda n=name, p=price: insertOrder(n, p))
+        btn.grid(row=idx // 4, column=idx % 4, padx=10, pady=5)  # Side-by-side layout
+
 mainLabel = Label(root, text="Point Of Sale (POS) System")
 mainLabel.config(font=('Helvetica', 18, 'bold'))
 mainLabel.pack()
@@ -199,8 +217,10 @@ desc.pack(pady=(0,20))
 separator = Frame(root, height=2, bd=1, relief="sunken")
 separator.pack(fill="x", padx=5, pady=(0,15))
 
-meeGoreng = Button(root, text="Noodles", command=lambda: insertOrder("Noodles", 5.90))
-meeGoreng.pack(anchor="w", padx=(20))
+items_frame = Frame(root)
+items_frame.pack(pady=10)
+
+display_items()
 
 totalAmount = Label(root, text=f"Total amount: ${amount:.2f}")
 totalAmount.config(font=("Sans Serif", 10))
